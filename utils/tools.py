@@ -29,6 +29,7 @@ def get_headers():
         "X-RapidAPI-Host": os.getenv("X-RapidAPI-Host"),
     }
 
+from utils.logger import logger
 
 def get_id(name: str) -> str:
     """Get the ID of the movie or the TV show from the name"""
@@ -36,13 +37,16 @@ def get_id(name: str) -> str:
     url = "https://imdb8.p.rapidapi.com/title/v2/find"
     headers = get_headers()
     querystring = {"title": name, "limit": 1, "sortArg": "moviemeter,asc"}
-    response = requests.get(url, headers=headers, params=querystring)
-    movie_id = None
     try:
+        response = requests.get(url, headers=headers, params=querystring)
         movie_id = response.json()["results"][0]["id"].split("/")[2]
-    except IndexError:
-        print("Could not find the movie. Could you please try again?")
-    return movie_id
+        logger.debug(f"Movie ID was succesfully retrieved. Movie ID: {movie_id}")
+        return movie_id
+    except Exception as e:
+        logger.debug(f"Not able to find the movie ID for the movie: {name}")
+        logger.debug(f"Error: {e}")
+        return f"Movie ID not found for the movie: {name}"
+   
 
 
 @tool(args_schema=GetCastDetailsInput)
@@ -53,13 +57,24 @@ def get_cast_details(id: str) -> str:
     querystring = {"tconst": id}
     headers = get_headers()
     response = requests.get(url, headers=headers, params=querystring)
-    print(id)
-    print(response)
+    logger.debug(f"Inside the get_cast_details function")
+    if response.status_code != 200:
+        logger.debug(f"Response status code: {response.status_code}")
+        logger.debug(f"Response headers: {response.headers}")
+        logger.debug(f"Response body: {response.text}")
+        return f"Not able to retrieve the cast for the movie with ID: {id}. Response text: {response.text}"
+    else:
+        logger.debug(f"Cast retrieved successfully")
     cast = response.json()
     ret = ""
     for actor_code in cast[:5]:
         url = "https://imdb8.p.rapidapi.com/actors/get-bio"
-
+        logger.debug(f"Calling the get-bio endpoint for actor: {actor_code}")
+        if response.status_code != 200:
+            logger.debug(f"Response status code: {response.status_code}")
+            logger.debug(f"Response headers: {response.headers}")
+            logger.debug(f"Response body: {response.text}")
+            return f"Not able to retrieve the bio for the actor with code: {actor_code}. Response text: {response.text}"
         querystring = {"nconst": actor_code.split("/")[2]}
         response = requests.get(url, headers=headers, params=querystring)
         actor_bio = response.json()
@@ -72,6 +87,7 @@ def get_cast_details(id: str) -> str:
             ret += "------------------------------------------------------\n"
         else:
             pass
+    logger.debug(f"Returning the cast details succesfully")
     return ret
 
 
@@ -84,8 +100,13 @@ def get_rating(id: str) -> str:
     querystring = {"tconst": id}
     headers = get_headers()
     response = requests.get(url, headers=headers, params=querystring)
-    data = response.json()
-    # Extract the rating
+    if response.status_code != 200:
+        logger.debug(f"Response status code: {response.status_code}")
+        logger.debug(f"Response headers: {response.headers}")
+        logger.debug(f"Response body: {response.text}")
+        return f"Not able to retrieve the rating for the movie with ID: {id}. Response text: {response.text}"
+    else:
+        logger.debug(f"Rating retrieved successfully")
     data = response.json()
     output = ""
 
@@ -108,6 +129,7 @@ def get_rating(id: str) -> str:
         #     output += f"    {rating_value}: {count}\n"
 
     # Print the entire output string
+    logger.debug(f"Returning the rating details succesfully")
     return output
 
 
@@ -118,13 +140,12 @@ def get_awards(id: str) -> str:
     url = "https://imdb8.p.rapidapi.com/title/get-awards-summary"
     headers = get_headers()
     querystring = {"tconst": id}
-
-    headers = {
-        "X-RapidAPI-Key": "9bf945d759mshde4fe1a4916fc96p176ed9jsnd4cd2f06b55e",
-        "X-RapidAPI-Host": "imdb8.p.rapidapi.com",
-    }
-
     response = requests.get(url, headers=headers, params=querystring)
+    if response.status_code != 200:
+        logger.debug(f"Response status code: {response.status_code}")
+        logger.debug(f"Response headers: {response.headers}")
+        logger.debug(f"Response body: {response.text}")
+        return f"Not able to retrieve the awards for the movie with ID: {id}. Response text: {response.text}"
     data = response.json()
     summary = ""
 
@@ -153,6 +174,7 @@ def get_awards(id: str) -> str:
 
     # Append the highlighted ranking information to the summary string
     summary += f"Highlighted Ranking: {data['highlightedRanking']['label']} (Rank: {data['highlightedRanking']['rank']})\n"
+    logger.debug(f"Returning the awards details succesfully")
     return summary
 
 
@@ -163,13 +185,12 @@ def get_plot(id: str) -> str:
     url = "https://imdb8.p.rapidapi.com/title/get-plots"
     headers = get_headers()
     querystring = {"tconst": id}
-
-    headers = {
-        "X-RapidAPI-Key": "9bf945d759mshde4fe1a4916fc96p176ed9jsnd4cd2f06b55e",
-        "X-RapidAPI-Host": "imdb8.p.rapidapi.com",
-    }
-
     response = requests.get(url, headers=headers, params=querystring)
+    if response.status_code != 200:
+        logger.debug(f"Response status code: {response.status_code}")
+        logger.debug(f"Response headers: {response.headers}")
+        logger.debug(f"Response body: {response.text}")
+        return f"Not able to retrieve the plot for the movie with ID: {id}. Response text: {response.text}"
     data = response.json()
     # Initialize an empty string to hold the formatted output
     plots_summary = ""
@@ -177,4 +198,5 @@ def get_plot(id: str) -> str:
     # Iterate over the plots and append each plot's text to the summary string
     for plot in data["plots"][:5]:
         plots_summary += plot["text"] + "\n\n"
+    logger.debug(f"Returning the plot details succesfully")
     return plots_summary  # Return the formatted output

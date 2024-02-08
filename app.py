@@ -4,11 +4,12 @@ import os
 from dotenv import load_dotenv, find_dotenv
 from chains.tagger import Tagger
 from chains.summarizer import Summarizer
+from utils.logger import logger
 
 _ = load_dotenv(find_dotenv())  # read local .env file
 
 st.title("Imdb Chatbot")
-
+logger.propagate = False
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -45,7 +46,7 @@ if prompt := st.chat_input(
             st.markdown(summary)
         st.session_state.messages.append({"role": "assistant", "content": summary})
     except Exception as e:
-        print(f"Error: {e}")
+        logger.debug(f"Error: {e}")
         message = f"I was not able to process the request. I am an imdb bot and I can only answer questions about movies and TV shows."
         st.markdown(message)
         st.session_state.messages.append({"role": "assistant", "content": message})
