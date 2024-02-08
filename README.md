@@ -52,6 +52,7 @@ This project is an IMDb chatbot that interacts with the IMDb (Internet Movie Dat
 ## Usage
 
 Once the application is running, you can interact with the IMDb chatbot by typing queries related to movies or TV shows. The chatbot will respond with information retrieved from the IMDb database.
+To extract Imdb data, I am using this rapidapi : https://rapidapi.com/apidojo/api/imdb8/
 
 ## Contact
 
