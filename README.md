@@ -56,7 +56,3 @@ Once the application is running, you can interact with the IMDb chatbot by typin
 ## Contact
 
 Your Name - jayant.duneja@colorado.edu
-Project Link: https://github.com/yourusername/imdb-chatbot
-```
-
-Replace placeholders like `yourusername`, `your_openai_api_key`, and `your@email.com` with the actual values relevant to your project. Also, ensure that you have a `requirements.txt` file listing all the dependencies needed to run your project, and that you include a `LICENSE` file with the appropriate license information.
