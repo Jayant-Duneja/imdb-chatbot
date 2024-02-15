@@ -2,7 +2,7 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.utils.openai_functions import convert_pydantic_to_openai_function
 from langchain.output_parsers.openai_functions import PydanticOutputFunctionsParser
-from utils.tools import get_id, get_cast_details, get_rating, get_awards, get_plot
+from utils.tools import get_id, get_cast_details, get_awards, get_plot
 from utils.tools import (
     GetAwardsInput,
     GetCastDetailsInput,
@@ -63,7 +63,7 @@ class Information_Extractor:
         )
         self.functions = [
             format_tool_to_openai_function(f)
-            for f in [get_cast_details, get_rating, get_awards, get_plot]
+            for f in [get_cast_details, get_awards, get_plot]
         ]
         self.model = ChatOpenAI(
             api_key=self.api_key, temperature=0.0, model="gpt-3.5-turbo-1106"
@@ -93,7 +93,7 @@ class Information_Extractor:
             tools = {
                 "get_plot": get_plot,
                 "get_cast_details": get_cast_details,
-                "get_rating": get_rating,
+                # "get_rating": get_rating,
                 "get_awards": get_awards,
             }
             return tools[result.tool].run(result.tool_input)
