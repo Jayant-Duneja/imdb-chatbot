@@ -9,6 +9,8 @@ from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain.callbacks.tracers import ConsoleCallbackHandler
+from langchain_core.messages import BaseMessage, AIMessage
 
 
 class Tagger:
@@ -58,25 +60,12 @@ class Tagger:
             pydantic_schema={"UserIntent": UserIntent}
         )
 
-        runnable = (
+        self.runnable = (
             self.prompt
             | self.model
             | self.parser
         )
 
-        def get_session_history(session_id: str) -> BaseChatMessageHistory:
-            if session_id not in self.store:
-                self.store[session_id] = ChatMessageHistory()
-            return self.store[session_id]
-
-        self.chain = RunnableWithMessageHistory(
-            runnable,
-            get_session_history,
-            input_messages_key="input",
-            history_messages_key="history",
-        )
-
-    
     def extract_information(self, input: str) -> UserIntent:
         """
         Extracts the name of the movie and the intent from the user's input using the GPT-3 model.
@@ -87,9 +76,22 @@ class Tagger:
         Returns:
             UserIntent: An object containing the extracted name and intent from the user's input.
         """
+        def get_session_history(session_id: str) -> BaseChatMessageHistory:
+            if session_id not in self.store:
+                self.store[session_id] = ChatMessageHistory()
+            return self.store[session_id]
+
+        self.chain = RunnableWithMessageHistory(
+            self.runnable,
+            get_session_history,
+            input_messages_key="input",
+            history_messages_key="history",
+        )
         intent: UserIntent = self.chain.invoke(
             {
                 "input": f"Exract the name of the movie and the intent from the user's input.  {input}",},
+                # config={"configurable": {"session_id": self.session_id}, 'callbacks': [ConsoleCallbackHandler()]}
                 config={"configurable": {"session_id": self.session_id}}
         )
+        self.store[self.session_id].add_message(AIMessage(content=f"User wants to know about the movie {intent.name} and wants to talk about the {intent.intent}."))
         return intent

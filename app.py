@@ -18,15 +18,25 @@ if "messages" not in st.session_state:
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
+# Initialize the tagger, information extractor, and summarizer instances
+if "tagger" not in st.session_state:
+    st.session_state.tagger = Tagger(os.getenv("OPENAI_API_KEY"))
+if "information_extractor" not in st.session_state:
+    st.session_state.information_extractor = Information_Extractor(os.getenv("OPENAI_API_KEY"))
+if "summarizer" not in st.session_state:
+    st.session_state.summarizer = Summarizer(os.getenv("OPENAI_API_KEY"))
 
 # React to user input
 if prompt := st.chat_input(
     "I am a helpful Imdb bot. Ask me anything about movies or TV Shows!"
 ):
     try:
-        tagger = Tagger(os.getenv("OPENAI_API_KEY"))
-        information_extractor = Information_Extractor(os.getenv("OPENAI_API_KEY"))
-        summarizer = Summarizer(os.getenv("OPENAI_API_KEY"))
+        # tagger = Tagger(os.getenv("OPENAI_API_KEY"))
+        # information_extractor = Information_Extractor(os.getenv("OPENAI_API_KEY"))
+        # summarizer = Summarizer(os.getenv("OPENAI_API_KEY"))
+        tagger = st.session_state.tagger
+        information_extractor = st.session_state.information_extractor
+        summarizer = st.session_state.summarizer
         # Display user message in chat message container
         with st.chat_message("user"):
             st.markdown(prompt)
