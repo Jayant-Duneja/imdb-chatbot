@@ -6,6 +6,9 @@ from langchain.output_parsers.openai_functions import PydanticOutputFunctionsPar
 from schema.schema import UserIntent
 from langchain.memory import ConversationBufferWindowMemory, ConversationBufferMemory
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
 
 
 class Tagger:
@@ -30,18 +33,20 @@ class Tagger:
             api_key (str): The API key used for authentication with the OpenAI API.
         """
         self.api_key = api_key
+        self.session_id = "tagger"
         self.prompt = ChatPromptTemplate.from_messages(
             [
                 (
                     "system",
                     """You are a helpful ai that can tag and extract important information from the user's input. 
+                    In case the user has not clearly mentioned about a movie, use the previous messages saved in the memory for context.
                     """,
                 ),
                 MessagesPlaceholder(variable_name="history"),
                 ("user", "{input}"),
             ]
         )
-
+        self.store = {}
         self.functions = [convert_pydantic_to_openai_function(UserIntent)]
 
         self.model = ChatOpenAI(
@@ -49,21 +54,29 @@ class Tagger:
         ).bind(functions=self.functions)
         # gpt-3.5-turbo-1106 context window: 16,385t / output: 4,096t
 
-        self.conversation_buffer = ConversationBufferMemory(return_messages=True)
         self.parser = PydanticOutputFunctionsParser(
             pydantic_schema={"UserIntent": UserIntent}
         )
 
-        self.chain = (
-            RunnablePassthrough.assign(
-                history=RunnableLambda(self.conversation_buffer.load_memory_variables)
-                | itemgetter("history")
-            )
-            | self.prompt
+        runnable = (
+            self.prompt
             | self.model
             | self.parser
         )
 
+        def get_session_history(session_id: str) -> BaseChatMessageHistory:
+            if session_id not in self.store:
+                self.store[session_id] = ChatMessageHistory()
+            return self.store[session_id]
+
+        self.chain = RunnableWithMessageHistory(
+            runnable,
+            get_session_history,
+            input_messages_key="input",
+            history_messages_key="history",
+        )
+
+    
     def extract_information(self, input: str) -> UserIntent:
         """
         Extracts the name of the movie and the intent from the user's input using the GPT-3 model.
@@ -74,16 +87,9 @@ class Tagger:
         Returns:
             UserIntent: An object containing the extracted name and intent from the user's input.
         """
-        self.conversation_buffer.load_memory_variables({})
         intent: UserIntent = self.chain.invoke(
             {
-                "input": f"Exract the name of the movie and the intent from the user's input.  {input}"
-            },
-        )
-        self.conversation_buffer.save_context(
-            {"input": input},
-            {
-                "output": f"User wants to know about the {intent.name} and want to talk about the {intent.intent}."
-            },
+                "input": f"Exract the name of the movie and the intent from the user's input.  {input}",},
+                config={"configurable": {"session_id": self.session_id}}
         )
         return intent
